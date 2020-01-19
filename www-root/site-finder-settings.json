@@ -1,0 +1,11 @@
+{
+  "number_of_columns": 2,
+  "directories": [
+    {
+      "path": "/home/USER_NAME/public_html",
+      "url_suffix": "~USER_NAME",
+      "is_scanned": false,
+      "are_children_scanned": true
+    }
+  ]
+}

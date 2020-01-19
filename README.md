@@ -2,6 +2,8 @@
 
 Scan local directories for website installations and present them as a list with meta data and site/admin links.
 
+![Site Finder Results Sample](https://github.com/headwalluk/site-finder/blob/master/site-finder-results-sample-01.png?raw=true)
+
 ## What It Actually Does
 
 Place the files in a document root (e.g. /var/www/html or /home/USER_NAME/public_html) and Site Finder will scan sub-directories looking for websites/apps. It will display all discovered sites in a list, with summary information for each site.

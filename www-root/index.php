@@ -13,11 +13,12 @@ require_once( 'site-finder/main.php' );
 
 $site_finder = new SiteFinder();
 
-$site_finder->writePageHeader();
+$site_finder->processPostData();
 
 $site_finder->initialise();
 
-$site_finder->addChildDirectories( getcwd() );
+$site_finder->writePageHeader();
+
 $site_finder->blacklistPath( Tools::joinPaths( getcwd(), 'site-finder' ) );
 
 $site_finder->findSites();

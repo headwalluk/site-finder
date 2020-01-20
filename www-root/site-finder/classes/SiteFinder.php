@@ -34,23 +34,29 @@ class SiteFinder
 	function __construct()
 	{
 		set_exception_handler( array( 'Tools', 'exceptionHandler' ) );
+
+		$this->config_file_name = Tools::joinPaths( getcwd(), self::CONFIG_FILE_NAME );
 	}
 
 
 	private const CONFIG_FILE_NAME = 'site-finder-settings.json';
+
+	private $config_file_name = NULL;
 
 
 	public function initialise()
 	{
 		$this->clearDirectories();
 
-		$config_file_name = realpath( self::CONFIG_FILE_NAME );
+		// printf( "Loading from %s\n", $this->config_file_name );
+
+		$this->addChildDirectories( getcwd() );
 
 		// Tools::showDebug( $config_file_name );
 
 		try
 		{
-			$this->loadConfigurationFile( $config_file_name );
+			$this->loadConfigurationFile( $this->config_file_name );
 		}
 		catch( Exception $e )
 		{
@@ -67,7 +73,104 @@ class SiteFinder
 		}
 	}
 
-	
+
+	// -------------------------------------------------------------------------
+	//
+	// Process post data.
+	//
+	// -------------------------------------------------------------------------
+
+
+	public function processPostData()
+	{
+		if( $_SERVER["REQUEST_METHOD"] == "POST") {
+			// print_r( $_POST );
+
+			$paths = array();
+			$url_suffixes = array();
+			$is_scanned = array();
+			$are_children_scanned = array();
+
+			if( isset( $_POST['paths'] ) && is_array( $_POST['paths'] ) ) {
+				$paths = $_POST["paths"];
+			}
+
+			$path_count = count( $paths );
+
+			if( isset( $_POST['urlSuffuxes'] ) && is_array( $_POST['urlSuffuxes'] ) ) {
+				$url_suffixes = $_POST["urlSuffuxes"];
+				
+				while( count( $url_suffixes ) < $path_count ) {
+					array_push( $url_suffixes, '' );
+				}
+			}
+
+			if( isset( $_POST['isScanned'] ) && is_array( $_POST['isScanned'] ) ) {
+				$is_scanned = $_POST["isScanned"];
+				
+				while( count( $is_scanned ) < $path_count ) {
+					array_push( $is_scanned, 'yes' );
+				}
+			}
+
+			if( isset( $_POST['areChildrenScanned'] ) && is_array( $_POST['areChildrenScanned'] ) ) {
+				$are_children_scanned = $_POST["areChildrenScanned"];
+				
+				while( count( $are_children_scanned ) < $path_count ) {
+					array_push( $are_children_scanned, 'no' );
+				}
+			}
+
+
+			$path_index = 0;
+
+			$configuration = array();
+
+			$configuration['number_of_columns'] = $this->number_of_columns;
+			$configuration['directories'] = array();
+
+			if( isset( $_POST['number-of-display-columns'] ) ) {
+				$configuration['number_of_columns'] = intval( $_POST['number-of-display-columns'] );
+			}
+
+			for( $path_index = 0; $path_index < $path_count; ++$path_index )
+			{
+				$path = $paths[$path_index];
+
+				if( !empty( $path ) ) {
+					$url_suffix = $url_suffixes[$path_index];
+
+					if( empty( $url_suffix ) ) {
+						$url_suffix = '';
+					}
+
+					array_push(
+						$configuration['directories'],
+						array(
+							'path'					=> $path,
+							'url_suffix'			=> $url_suffix,
+							'is_scanned'			=> ( $is_scanned[$path_index] === 'yes' ),
+							'are_children_scanned'	=> ( $are_children_scanned[$path_index] === 'yes' )
+						)
+					);
+				}
+
+				// echo $path . "\n";
+			}
+
+			$serialised_configuration = json_encode( $configuration );
+
+			// 	print_r( $serialised_configuration );
+			
+			if( file_exists( $this->config_file_name ) ) {
+				unlink( $this->config_file_name );
+			}
+			
+			file_put_contents( $this->config_file_name, $serialised_configuration );
+		}
+	}
+
+
 	// -------------------------------------------------------------------------
 	//
 	// Main "Find Sites" logic.
@@ -142,15 +245,54 @@ class SiteFinder
 					}
 				}
 			}
+
+
+			$this->writeExistingPathsScript();
+		}
+	}
+
+
+	private function writeExistingPathsScript()
+	{
+		if( count( $this->directories ) > 0 )
+		{
+			?>
+<script>
+	$(function() {
+			<?php
+
+			if( isset( $this->configuration['directories'] ) && is_array( $this->configuration['directories'] ) )
+			{
+				foreach( $this->configuration['directories'] as $directory ) {
+
+					printf(
+						'addDirectory( "%s", "%s", %s, %s )',
+						$directory['path'],
+						$directory['url_suffix'],
+						$directory['is_scanned'] ? "true" : "false",
+						$directory['are_children_scanned'] ? "true" : "false"
+					);
+
+					printf( "\n" );
+				}
+			}
+
+			?>
+	});
+</script>
+			<?php
 		}
 	}
 
 
 	// -------------------------------------------------------------------------
 	//
-	// Configuration file management.
+	// Configuration management.
 	//
 	// -------------------------------------------------------------------------
+
+
+	private $configuration = array();
 
 
 	public function loadConfigurationFile( $file_name )
@@ -167,19 +309,19 @@ class SiteFinder
 			{
 				$serialised_configuration = file_get_contents( $file_name, true );
 
-				$configuration = json_decode( $serialised_configuration, true );
+				$this->configuration = json_decode( $serialised_configuration, true );
 
-				if( !isset( $configuration ) ) {
+				if( !isset( $this->configuration ) ) {
 					throw new Exception( 'Failed to parse configuration file: "' . $file_name . '"' );
 				}
 
-				if( isset( $configuration['number_of_columns'] ) ) {
-					$this->number_of_columns = $configuration['number_of_columns'];
+				if( isset( $this->configuration['number_of_columns'] ) ) {
+					$this->number_of_columns = $this->configuration['number_of_columns'];
 				}
 
-				// Tools::dumpArray( $configuration );
+				// Tools::dumpArray( $this->configuration );
 
-				foreach( $configuration['directories'] as $directory ) {
+				foreach( $this->configuration['directories'] as $directory ) {
 					if( $directory['is_scanned'] ) {
 						$this->addPath(
 							$directory['path'],
@@ -376,7 +518,7 @@ class SiteFinder
 	private $number_of_columns = 4;
 	private $grid_width = 12;
 	private $column_grid_span = 0;
-	private $is_config_editor_enabled = false;
+	private $is_config_editor_enabled = true;
 
 
 	public function writePageHeader()
@@ -395,24 +537,8 @@ class SiteFinder
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-   <script type="text/javascript" charset="utf-8" async defer>
-   		// Note yet implemented for the configuration editor.
-	    //   	$(document).ready(function(){
-		//       var i=1;
-		//      $("#add_row").click(function(){b=i-1;
-		//       $('#addr'+i).html($('#addr'+b).html()).find('td:first-child').html(i+1);
-		//       $('#tab_logic').append('<tr id="addr'+(i+1)+'"></tr>');
-		//       i++; 
-		//   });
-		//      $("#delete_row").click(function(){
-		//     	 if(i>1){
-		// 		 $("#addr"+(i-1)).html('');
-		// 		 i--;
-		// 		 }
-		// 	 });
-		// });
-
-	</script>
+    <script src="site-finder/assets/directory-list-editor.js"></script>
+    <link rel="stylesheet" href="site-finder/assets/site-finder.css">
 
     <title>Sites @ <?php echo $_SERVER['HTTP_HOST']; ?></title>
 </head>
@@ -441,55 +567,78 @@ class SiteFinder
 		{
 ?>
 
-<script type="text/javascript">
+<script>
 $('#toggle-menu-button').click(function(){
     $(this).find('#main-menu-button-icon').toggleClass('fa-chevron-circle-down fa-chevron-circle-up');
 });
 </script>
 
-	<div id="demo" class="collapse">
+	<div id="demo" class="collapse pl-5 pr-5">
 
-		<div class="container mb-5 mt-5">
-    		<h3>Scanned Directories</h3>
-			<table class="table table-striped table-dark" id="tab_logic">
-				<tbody>
-					<tr id='addr0'>
-						<td class="align-middle">
-							<input type="text" name="path[]" placeholder="Path" class="form-control"/>
-						</td>
-						<td class="align-middle">
-							<input type="email" name="urlSuffuxes[]" placeholder="URL Suffix" class="form-control"/>
-						</td>
-						<td class="align-middle">
-							<div class="custom-control custom-checkbox">
-								<input name="isScanned[]" type="checkbox" class="custom-control-input" id="customCheck1" checked>
-								<label class="custom-control-label" for="customCheck1">Scan this dir?</label>
-							</div>
-						</td>
-						<td class="align-middle">
-							<div class="custom-control custom-checkbox">
-								<input name="areChildrenScanned[]" type="checkbox" class="custom-control-input" id="customCheck2" checked>
-								<label class="custom-control-label" for="customCheck2">Scan children?</label>
-							</div>
-						</td>
-						<td class="align-middle">
-							<button class="btn btn-danger float-right"><i class="fa fa-trash"></i></button>
-						</td>
-					</tr>
-                    <tr id='addr1'></tr>
-				</tbody>
-			</table>
+		<form method="post">
+			<div class="container table-responsive mb-5 mt-5">
+				<h3>General Options</h3>
+				<!-- <div class="container-fluid"> -->
+					<div class="row">
+						<div class="col-sm-2 form-group">
+						    <label for="numberOfDisplayColumns" class="control-label">Display Columns</label>
+					        <select class="form-control" name="number-of-display-columns" id="numberOfDisplayColumns">
+<?php
+			foreach( self::VALID_COLUMN_COUNTS as $number_of_columns ) {
+				$selected_property = '';
 
-			<!--
+				if( $number_of_columns === $this->number_of_columns ) {
+					$selected_property = ' selected="selected"';
+				}
+
+				printf( '<option value="%s"%s>%s</option>', $number_of_columns, $selected_property, $number_of_columns );
+			}
+?>
+					        </select>
+				        </div>
+				    </div>
+				<!-- </div> -->
+
+	    		<h3>Scanned Directories</h3>
+				<table id="directories-table" class="table table-striped table-dark">
+					<tbody>
+						<tr id='directory-template-row' style="display: none;">
+							<td class="align-middle">
+								<!-- <input type="hidden" name="directoryIndex"/> -->
+								<input type="text" name="paths[]" placeholder="Path" class="form-control"/>
+							</td>
+							<td class="align-middle">
+								<input type="text" name="urlSuffuxes[]" placeholder="URL Suffix" class="form-control"/>
+							</td>
+							<td class="align-bottom">
+	                            <label class="custom-control custom-checkbox">
+	                            	Scan this directory?
+	                            	<input name="isScanned[]" type="hidden" value="no" />
+	                                <input name="isScannedCb" type="checkbox" class="custom-control-input" />
+	                                <span class="custom-control-indicator"></span>
+	                            </label>
+							</td>
+							<td class="align-bottom">
+	                            <label class="custom-control custom-checkbox">
+	                            	Scan child directories?
+	                            	<input name="areChildrenScanned[]" type="hidden" value="no" />
+	                                <input name="areChildrenScannedCb" type="checkbox" class="custom-control-input" />
+	                                <span class="custom-control-indicator"></span>
+	                            </label>
+							</td>
+							<td class="align-middle">
+								<button name="removeDirectoryButton" class="btn btn-danger float-right"><i class="fa fa-trash"></i></button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<div class="clearfix">
+					<button id="addDirectoryButton" class="btn btn-light" type="button"><i class="fa fa-plus"></i>&nbsp;Add Directory</button>
+					<button class="btn btn-light float-right" type="submit"><i class="fa fa-floppy-o"></i>&nbsp;Save</button>
 				</div>
 			</div>
-			-->
-			<!--<button id="add_row" class="btn btn-default pull-left">Add Row</button><button id='delete_row' class="pull-right btn btn-default">Delete Row</button>-->
-			<div class="clearfix">
-				<button class="btn btn-light"><i class="fa fa-plus"></i>&nbsp;Add Directory</button>
-				<button class="btn btn-light float-right"><i class="fa fa-floppy-o"></i>&nbsp;Save</button>
-			</div>
-		</div>
+		</form>
 
 	</div>
 

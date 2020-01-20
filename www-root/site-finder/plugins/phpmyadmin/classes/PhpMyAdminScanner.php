@@ -32,7 +32,7 @@ class PhpMyAdminScanner extends Scanner
 
 		// Tools::dump_array( $package );
 
-		if( $package['name'] == self::PACKAGE_NAME )
+		if( isset( $package['name'] ) && $package['name'] === self::PACKAGE_NAME )
 		{
 			$site_definition->title = 'phpMyAdmin ' . $package['version'];
 			$site_definition->icon_name = 'database';

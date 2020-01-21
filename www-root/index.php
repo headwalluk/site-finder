@@ -19,13 +19,13 @@ $site_finder->initialise();
 
 $site_finder->writePageHeader();
 
-$site_finder->blacklistPath( Tools::joinPaths( getcwd(), 'site-finder' ) );
-
 $site_finder->findSites();
 
-$site_finder->writeSitesHeader();
-$site_finder->writeSitesBody();
-$site_finder->writeSitesFooter();
+$site_finder->writeSites();
+
+// $site_finder->writeSitesHeader();
+// $site_finder->writeSitesBody();
+// $site_finder->writeSitesFooter();
 
 $site_finder->writePageFooter();
 

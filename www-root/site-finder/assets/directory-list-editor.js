@@ -10,7 +10,7 @@ var isAutoMenuEnabled = false;
 
 
 $(function() {
-    console.log( "ready!" );
+    console.log( "Site Finder Loaded..." );
 
     if( isAutoMenuEnabled ) {
     	$( "#toggle-menu-button" ).click();
@@ -34,10 +34,8 @@ function addDirectory( path, urlSuffix, isScanned, areChildrenScanned )
 	var newRowIndex = 1;
 
 	$( "#directories-table tbody" ).append( newRow );
-
 	
 	newRow.css( "display" , "block" );
-	newRow.find( "input:text" ).val( "XXX" );
 
 	newRow.find( "input[name ='paths[]']").val( path );
 	newRow.find( "input[name ='urlSuffuxes[]']").val( urlSuffix );
@@ -59,3 +57,4 @@ function addDirectory( path, urlSuffix, isScanned, areChildrenScanned )
 	});
 
 }
+

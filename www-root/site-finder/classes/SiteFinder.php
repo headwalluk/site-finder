@@ -31,6 +31,11 @@ class SiteFinder
 {
 
 
+	public const APP_NAME = 'Site Finder';
+	public const APP_VERSION = '1.1';
+	public const APP_SOURCE_URL = 'https://github.com/headwalluk/site-finder';
+
+
 	function __construct()
 	{
 		set_exception_handler( array( 'Tools', 'exceptionHandler' ) );
@@ -44,15 +49,22 @@ class SiteFinder
 	private $config_file_name = NULL;
 
 
+	public static function getVersionString()
+	{
+		return self::APP_NAME . ' v' . self::APP_VERSION;
+	}
+
+
 	public function initialise()
 	{
+		// Reset everything.
 		$this->clearDirectories();
 
-		// printf( "Loading from %s\n", $this->config_file_name );
-
+		// Scan children of the start-up direcctory.
 		$this->addChildDirectories( getcwd() );
 
-		// Tools::showDebug( $config_file_name );
+		// Blacklist the site-finder subdirectory.
+		$this->blacklistPath( Tools::joinPaths( getcwd(), 'site-finder' ) );
 
 		try
 		{
@@ -84,6 +96,8 @@ class SiteFinder
 	public function processPostData()
 	{
 		if( $_SERVER["REQUEST_METHOD"] == "POST") {
+
+			// Diagnostics.
 			// print_r( $_POST );
 
 			$paths = array();
@@ -126,11 +140,19 @@ class SiteFinder
 
 			$configuration = array();
 
-			$configuration['number_of_columns'] = $this->number_of_columns;
-			$configuration['directories'] = array();
+			$configuration['number_of_columns']			= $this->number_of_columns;
+			$configuration['is_config_editor_enabled']	= $this->is_config_editor_enabled;
+			$configuration['directories']				= array();
 
-			if( isset( $_POST['number-of-display-columns'] ) ) {
-				$configuration['number_of_columns'] = intval( $_POST['number-of-display-columns'] );
+			if( isset( $_POST['numberOfDisplayColumns'] ) ) {
+				$configuration['number_of_columns'] = intval( $_POST['numberOfDisplayColumns'] );
+			}
+
+			if( isset( $_POST['isEditorEnabled'] ) ) {
+				$configuration['is_config_editor_enabled'] = true;
+			}
+			else {
+				$configuration['is_config_editor_enabled'] = false;	
 			}
 
 			for( $path_index = 0; $path_index < $path_count; ++$path_index )
@@ -147,10 +169,10 @@ class SiteFinder
 					array_push(
 						$configuration['directories'],
 						array(
-							'path'					=> $path,
-							'url_suffix'			=> $url_suffix,
-							'is_scanned'			=> ( $is_scanned[$path_index] === 'yes' ),
-							'are_children_scanned'	=> ( $are_children_scanned[$path_index] === 'yes' )
+							'path'						=> $path,
+							'url_suffix'				=> $url_suffix,
+							'is_scanned'				=> ( $is_scanned[$path_index] === 'yes' ),
+							'are_children_scanned'		=> ( $are_children_scanned[$path_index] === 'yes' )
 						)
 					);
 				}
@@ -317,6 +339,10 @@ class SiteFinder
 
 				if( isset( $this->configuration['number_of_columns'] ) ) {
 					$this->number_of_columns = $this->configuration['number_of_columns'];
+				}
+
+				if( isset( $this->configuration['is_config_editor_enabled'] ) ) {
+					$this->is_config_editor_enabled = $this->configuration['is_config_editor_enabled'];
 				}
 
 				// Tools::dumpArray( $this->configuration );
@@ -544,34 +570,34 @@ class SiteFinder
 </head>
 <body class="bg-dark text-white">
 
-	<nav class="navbar navbar-expand-sm bg-dark navbar-dark sticky-top">
+	<!--<nav class="navbar navbar-expand-sm bg-dark navbar-dark">-->
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark" role="navigation">
+		<ul class="navbar-nav mr-auto">
+			<li class="nav-item">
 <?php
-		if( $this->is_config_editor_enabled)
+		if( $this->is_config_editor_enabled )
 		{
 ?>
-		<ul class="navbar-nav">
-			<li class="nav-item">
-				<button id="toggle-menu-button" data-toggle="collapse" data-target="#demo" class="btn btn-primary"><i id="main-menu-button-icon" class="fa fa-chevron-circle-down"></i></button>
-			</li>
-		</ul>
+				<button id="toggle-menu-button" data-toggle="collapse" data-target="#demo" class="btn btn-primary"><i id="main-menu-button-icon" class="fa fa-bars"></i></button>
 <?php
 		}
 ?>
-		<ul class="nav navbar-nav navbar-logo mx-auto">
-			<li class="nav-item"><h4><?php echo $_SERVER['HTTP_HOST']; ?></h4></li>
+			</li>
+		</ul>
+		<ul class="navbar-nav mx-auto">
+			<li class="nav-item"><a class="nav-link" href="<?php echo Tools::getRequestUrl(); ?>"><?php echo $_SERVER['HTTP_HOST']; ?></a></li>
+		</ul>
+		
+		<ul class="navbar-nav ml-auto">
+			<li class="nav-item"><a class="nav-link" href="<?php echo self::APP_SOURCE_URL; ?>"><i class="fa fa-sm fa-github"></i>&nbsp;<?php echo self::APP_NAME ?> <small>v<?php echo self::APP_VERSION ?></small></a></li>
 		</ul>
 	</nav>
+
 <?php
 		
 		if( $this->is_config_editor_enabled )
 		{
 ?>
-
-<script>
-$('#toggle-menu-button').click(function(){
-    $(this).find('#main-menu-button-icon').toggleClass('fa-chevron-circle-down fa-chevron-circle-up');
-});
-</script>
 
 	<div id="demo" class="collapse pl-5 pr-5">
 
@@ -579,10 +605,10 @@ $('#toggle-menu-button').click(function(){
 			<div class="container table-responsive mb-5 mt-5">
 				<h3>General Options</h3>
 				<!-- <div class="container-fluid"> -->
-					<div class="row">
-						<div class="col-sm-2 form-group">
-						    <label for="numberOfDisplayColumns" class="control-label">Display Columns</label>
-					        <select class="form-control" name="number-of-display-columns" id="numberOfDisplayColumns">
+				<div class="row">
+					<div class="col-sm-2 form-group">
+						<label for="numberOfDisplayColumns" class="control-label">Display Columns</label>
+				        <select class="form-control" name="numberOfDisplayColumns" id="numberOfDisplayColumns">
 <?php
 			foreach( self::VALID_COLUMN_COUNTS as $number_of_columns ) {
 				$selected_property = '';
@@ -594,35 +620,57 @@ $('#toggle-menu-button').click(function(){
 				printf( '<option value="%s"%s>%s</option>', $number_of_columns, $selected_property, $number_of_columns );
 			}
 ?>
-					        </select>
-				        </div>
-				    </div>
+				        </select>
+			        </div>
+			        <div class="col-sm-8 form-group">
+			        	<p>&nbsp;</p>
+			        	<label class="custom-control custom-checkbox">
+				        	Enable Configuration Editor
+                            <input name="isEditorEnabled" type="checkbox" class="custom-control-input" checked />
+                            <span class="custom-control-indicator"></span>
+                        </label>
+                        <p><span class="badge badge-danger">IMPORTANT</span>&nbsp;If you disable the editor then you will need to manually edit <strong><?php echo self::CONFIG_FILE_NAME; ?></strong> to re-enable it.</p>
+			        </div>
+			        <div class="col-sm-2 form-group">
+			        	<p>&nbsp;</p>
+			        	<button class="btn btn-primary float-right w-100" type="submit"><i class="fa fa-floppy-o"></i>&nbsp;Save</button>
+			        </div>
+			    </div>
 				<!-- </div> -->
 
-	    		<h3>Scanned Directories</h3>
-				<table id="directories-table" class="table table-striped table-dark">
+				<div class="row mt-5">
+			        <div class="col-sm-10 form-group">
+			        	<h3>Scanned Directories</h3>
+			        </div>
+			        <div class="col-sm-2 form-group">
+			        	<button id="addDirectoryButton" class="btn btn-light float-right w-100" type="button"><i class="fa fa-plus"></i>&nbsp;Add Directory</button>
+			        </div>
+				</div>
+
+	    		
+				<table id="directories-table" class="table table-striped table-dark m-0">
 					<tbody>
 						<tr id='directory-template-row' style="display: none;">
 							<td class="align-middle">
 								<!-- <input type="hidden" name="directoryIndex"/> -->
-								<input type="text" name="paths[]" placeholder="Path" class="form-control"/>
+								<input type="text" name="paths[]" placeholder="/home/USER_NAME/public_html" class="form-control"/>
 							</td>
 							<td class="align-middle">
-								<input type="text" name="urlSuffuxes[]" placeholder="URL Suffix" class="form-control"/>
+								<input type="text" name="urlSuffuxes[]" placeholder="~USER_NAME" class="form-control"/>
 							</td>
 							<td class="align-bottom">
 	                            <label class="custom-control custom-checkbox">
 	                            	Scan this directory?
-	                            	<input name="isScanned[]" type="hidden" value="no" />
-	                                <input name="isScannedCb" type="checkbox" class="custom-control-input" />
+	                            	<input name="isScanned[]" type="hidden" value="yes" />
+	                                <input name="isScannedCb" type="checkbox" class="custom-control-input" checked />
 	                                <span class="custom-control-indicator"></span>
 	                            </label>
 							</td>
 							<td class="align-bottom">
 	                            <label class="custom-control custom-checkbox">
 	                            	Scan child directories?
-	                            	<input name="areChildrenScanned[]" type="hidden" value="no" />
-	                                <input name="areChildrenScannedCb" type="checkbox" class="custom-control-input" />
+	                            	<input name="areChildrenScanned[]" type="hidden" value="yes" />
+	                                <input name="areChildrenScannedCb" type="checkbox" class="custom-control-input" checked />
 	                                <span class="custom-control-indicator"></span>
 	                            </label>
 							</td>
@@ -634,8 +682,8 @@ $('#toggle-menu-button').click(function(){
 				</table>
 
 				<div class="clearfix">
-					<button id="addDirectoryButton" class="btn btn-light" type="button"><i class="fa fa-plus"></i>&nbsp;Add Directory</button>
-					<button class="btn btn-light float-right" type="submit"><i class="fa fa-floppy-o"></i>&nbsp;Save</button>
+					
+					
 				</div>
 			</div>
 		</form>
@@ -669,7 +717,15 @@ $('#toggle-menu-button').click(function(){
 	private const VALID_COLUMN_COUNTS = array( 1, 2, 3, 4, 6, 12 );
 
 
-	public function writeSitesHeader()
+	public function writeSites()
+	{
+		$this->writeSitesHeader();
+		$this->writeSitesBody();
+		$this->writeSitesFooter();
+	}
+
+
+	private function writeSitesHeader()
 	{
 		if( !in_array( $this->number_of_columns, self::VALID_COLUMN_COUNTS ) ) {
 			Tools::showError( "number_of_columns must be one of: " . implode( ', ', SELF::VALID_COLUMN_COUNTS ). '. Current value is "' . $this->number_of_columns . '"' );
@@ -683,19 +739,21 @@ $('#toggle-menu-button').click(function(){
 
 
 	
-	public function writeSitesFooter()
+	private function writeSitesFooter()
 	{
     	printf( '</div>' );
 	}
 
 
-	public function writeSitesBody()
+	private function writeSitesBody()
 	{
 		if( $this->number_of_columns > 0 )
 		{
 			$column_index = 0;
 
 			Tools::showDebug( 'column_grid_span: ' . $this->column_grid_span );
+
+			$found_sites_count = 0;
 
 			if( count( $this->site_definitions ) > 0 )
 			{
@@ -706,6 +764,8 @@ $('#toggle-menu-button').click(function(){
 				{
 					if( $site_definition->is_valid )
 					{
+						++$found_sites_count;
+
 						if( ! $is_row_open ) {
 							echo '<div class="row">';
 							$is_row_open = true;
@@ -731,7 +791,24 @@ $('#toggle-menu-button').click(function(){
 			{
 				// ...
 			}
+			
+			if( $found_sites_count == 0 ) {
+				$this->writeNoSitesFound();
+			}
 		}
+	}
+
+
+	private function writeNoSitesFound()
+	{
+?>
+<div class="jumbotron bg-dark text-light text-center">
+  <h1>No Sites Found</h1>
+</div>
+<script>
+	isAutoMenuEnabled = true;
+</script>
+<?php
 	}
 
 

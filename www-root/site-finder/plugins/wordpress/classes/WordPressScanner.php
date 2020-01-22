@@ -59,7 +59,7 @@ class WordPressScanner extends Scanner
 
 	        $conn = new mysqli( $db_host, $db_user, $db_pass, $db_name, NULL, $socket );
 		    if( $conn->connect_error ) {
-		        Tools::show_error( 'Connection failed: ' . $conn->connect_error );
+		        Tools::showError( 'Connection failed: ' . $conn->connect_error );
 		    }
 		    else
 		    {
@@ -91,9 +91,8 @@ class WordPressScanner extends Scanner
 
 				if( !empty( $site_url ) ) {
 					$site_definition->setMainLink( $site_url );
+					$site_definition->setAdminLink( $site_url . '/wp-admin' );
 				}
-				
-				$site_definition->setAdminLink( $site_url . '/wp-admin', false, true );
 
 				$site_definition->is_valid = true;
 		    }
@@ -103,7 +102,8 @@ class WordPressScanner extends Scanner
 
 	private function getSettingFromWpConfig( $file_name, $key_name )
 	{
-	    return trim( shell_exec( 'grep -o "^define.*' . $key_name . '\'.*\'" ' . $file_name . ' | awk -F, \'{print $2}\' | tr -d "\'" | tr -d \' \'' ) );
+	    // return trim( shell_exec( 'grep -o "^define.*' . $key_name . '\'.*\'" ' . $file_name . ' | awk -F, \'{print $2}\' | tr -d "\'" | tr -d \' \'' ) );
+	    return trim( shell_exec( 'grep -o "^define.*' . $key_name . '\'.*\'" ' . $file_name . ' | awk -F, \'{print $2}\' | tr -d "\' "' ) );
 	}
 
 

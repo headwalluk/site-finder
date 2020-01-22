@@ -81,7 +81,7 @@ class Tools
 
 	// -------------------------------------------------------------------------
 	//
-	// File system helpers.
+	// URL helpers.
 	//
 	// -------------------------------------------------------------------------
 
@@ -90,6 +90,34 @@ class Tools
 	{
 		// return '#';
 		return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+	}
+
+
+	public static function joinUrls( $base_url = '', $suffix = '' )
+	{
+		$new_url = '';
+
+		if( !empty( $base_url ) && !empty( $suffix ) )
+		{
+			if( self::endsWith( $base_url, '/' ) ) {
+				$new_url = $base_url . $suffix;
+			}
+			else {
+				$new_url = $base_url . '/' . $suffix;
+			}
+		}
+		else if( !empty( $base_url ) ) {
+			$new_url = $base_url;
+		}
+		else if( !empty( $suffix ) ) {
+			$new_url = $suffix;
+		}
+		else
+		{
+			// Return empty string.
+		}
+
+		return $new_url;
 	}
 
 
@@ -248,7 +276,15 @@ class Tools
 
 	public static function showError( $message )
 	{
-?><div class="alert alert-danger alert-dismissible fade show">
+?><div class="alert alert-danger fade show">
+	<?php echo $message; ?>
+</div><?php
+	}
+
+
+	public static function showWarning( $message )
+	{
+?><div class="alert alert-warning alert-dismissible fade show">
 	<button type="button" class="close" data-dismiss="alert">&times;</button>
 	<?php echo $message; ?>
 </div><?php

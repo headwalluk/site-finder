@@ -315,15 +315,20 @@ class SiteFinder
 
 
 	private $configuration = array();
+	private $does_configuration_file_exist = false;
+	private $is_configuration_writable = false;
 
 
 	public function loadConfigurationFile( $file_name )
 	{
 		if( !is_file( $file_name ) ) {
-			// Tools::showError( 'Configuration file not found or invalid: ' . $file_name );
+
+			$this->is_configuration_writable = is_writable( getcwd() );
 		}
 		else {
 			// Tools::showDebug( 'Found config file: ' . $file_name );
+			$this->does_configuration_file_exist = true;
+			$this->is_configuration_writable = is_writable( $file_name );
 
 			$directories = array();
 
@@ -603,6 +608,15 @@ class SiteFinder
 
 		<form method="post">
 			<div class="container table-responsive mb-5 mt-5">
+<?php
+			if( !$this->does_configuration_file_exist ) {
+				Tools::showWarning( 'Configuration file "' . self::CONFIG_FILE_NAME . '" does not (yet) exist.' );
+			}
+
+			if( !$this->is_configuration_writable ) {
+				Tools::showError( 'Configuration file "' . self::CONFIG_FILE_NAME . '" is not writable.' );
+			}
+?>
 				<h3>General Options</h3>
 				<!-- <div class="container-fluid"> -->
 				<div class="row">

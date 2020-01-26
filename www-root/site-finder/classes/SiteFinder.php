@@ -11,14 +11,11 @@
  * 
  * // Start.
  * $site_finder = new SiteFinder();
- * $site_finder->writePageHeader();
+ * $site_finder->processPostData();
  * $site_finder->initialise();
- * $site_finder->addChildDirectories( getcwd() );
- * $site_finder->blacklistPath( Tools::joinPaths( getcwd(), 'site-finder' ) );
+ * $site_finder->writePageHeader();
  * $site_finder->findSites();
- * $site_finder->writeSitesHeader();
- * $site_finder->writeSitesBody();
- * $site_finder->writeSitesFooter();
+ * $site_finder->writeSites();
  * $site_finder->writePageFooter();
  * // End.
  *
@@ -32,7 +29,7 @@ class SiteFinder
 
 
 	public const APP_NAME = 'Site Finder';
-	public const APP_VERSION = '1.1';
+	public const APP_VERSION = '1.2';
 	public const APP_SOURCE_URL = 'https://github.com/headwalluk/site-finder';
 
 

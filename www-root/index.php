@@ -12,21 +12,11 @@ require_once( 'site-finder/main.php' );
 // Tools::enableDebug();
 
 $site_finder = new SiteFinder();
-
 $site_finder->processPostData();
-
 $site_finder->initialise();
-
 $site_finder->writePageHeader();
-
 $site_finder->findSites();
-
 $site_finder->writeSites();
-
-// $site_finder->writeSitesHeader();
-// $site_finder->writeSitesBody();
-// $site_finder->writeSitesFooter();
-
 $site_finder->writePageFooter();
 
 ?>
